@@ -33,7 +33,6 @@ async function run() {
       const token = jwt.sign(user,  process.env.JWT_SECRET, {
         expiresIn: "365d",
       });
-      console.log("token", token);
       res.send({ token });
     });
 
@@ -59,7 +58,6 @@ async function run() {
       if (!isAdmin) {
         return res.status(403).send("forbidden access");
       }
-      console.log(isAdmin, "Admin check");
       next();
     };
     
@@ -72,7 +70,6 @@ async function run() {
       if (!isAdmin) {
         return res.status(403).send("forbidden access");
       }
-      console.log("Agent check", isAgent);
       next();
     };
 

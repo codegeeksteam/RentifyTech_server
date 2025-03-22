@@ -93,6 +93,20 @@ async function run() {
       res.send({ admin });
     });
 
+    app.get("/users/user/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "Unauthorized access" });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      let users = false;
+      if (user) {
+        users = user?.role === "User";
+      }
+      res.send({ users });
+    });
+
     app.get("/users/agent/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (email !== req.decoded.email) {

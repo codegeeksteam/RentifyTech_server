@@ -79,6 +79,34 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "Unauthorized access" });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "Admin";
+      }
+      res.send({ admin });
+    });
+
+    app.get("/users/agent/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "Unauthorized access" });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      let agent = false;
+      if (user) {
+        agent = user?.role === "Agent";
+      }
+      res.send({ agent });
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };

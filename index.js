@@ -132,8 +132,11 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-
-    // gadget crud
+    /**
+     *
+       -------   gadget crud   ----------
+     *
+     **/
     // posting a gadget
     app.post('/gadgets', async (req, res) => {
       const gadget = req.body;
@@ -147,21 +150,25 @@ async function run() {
     });
 
     // get single gadget by id
-    const { ObjectId } = require('mongodb'); 
+    const { ObjectId } = require('mongodb');
     app.get('/gadget/:id', async (req, res) => {
       try {
         const gadgetId = req.params.id;
-        
+
         // Query the database using ObjectId
-        const gadget = await gadgetsCollection.findOne({ _id: new ObjectId(gadgetId) });
-    
+        const gadget = await gadgetsCollection.findOne({
+          _id: new ObjectId(gadgetId),
+        });
+
         if (!gadget) {
           return res.status(404).send({ message: 'Gadget not found' });
         }
-    
+
         res.send(gadget);
       } catch (error) {
-        res.status(500).send({ message: 'Error fetching gadget', error: error.message });
+        res
+          .status(500)
+          .send({ message: 'Error fetching gadget', error: error.message });
       }
     });
 
@@ -169,22 +176,64 @@ async function run() {
     app.get('/gadgets/seller/:email', async (req, res) => {
       try {
         const sellerEmail = req.params.email;
-    
+
         // Query the database for gadgets by the seller's email
-        const sellerGadgets = await gadgetsCollection.find({ 'seller.email': sellerEmail }).toArray();
-    
+        const sellerGadgets = await gadgetsCollection
+          .find({ 'seller.email': sellerEmail })
+          .toArray();
+
         if (sellerGadgets.length === 0) {
-          return res.status(404).send({ message: 'No gadgets found for this seller' });
+          return res
+            .status(404)
+            .send({ message: 'No gadgets found for this seller' });
         }
-    
+
         res.send(sellerGadgets);
       } catch (error) {
-        res.status(500).send({ message: 'Error fetching seller gadgets', error: error.message });
+        res.status(500).send({
+          message: 'Error fetching seller gadgets',
+          error: error.message,
+        });
       }
     });
 
+    // update gadget by id
+    app.put('/update-gadget/:id', async (req, res) => {
+      try {
+        const gadgetId = req.params.id;
+        const updatedGadget = req.body;
 
+        // Validate the ID
+        if (!ObjectId.isValid(gadgetId)) {
+          return res.status(400).send({ message: 'Invalid gadget ID' });
+        }
 
+        // Check if the gadget exists
+        const existingGadget = await gadgetsCollection.findOne({
+          _id: new ObjectId(gadgetId),
+        });
+
+        if (!existingGadget) {
+          return res.status(404).send({ message: 'Gadget not found' });
+        }
+
+        // Update the gadget
+        const result = await gadgetsCollection.updateOne(
+          { _id: new ObjectId(gadgetId) },
+          { $set: updatedGadget },
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(400).send({ message: 'No changes were made' });
+        }
+
+        res.send({ message: 'Gadget updated successfully', result });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: 'Error updating gadget', error: error.message });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });

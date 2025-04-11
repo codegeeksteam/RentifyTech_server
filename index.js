@@ -197,7 +197,7 @@ async function run() {
       }
     });
 
-    // update gadget by id
+    // update gadget by single id
     app.put('/update-gadget/:id', async (req, res) => {
       try {
         const gadgetId = req.params.id;

@@ -12,7 +12,6 @@ app.use(express.json());
 // MongoDB connection
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hw01f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -198,7 +197,7 @@ async function run() {
       }
     });
 
-    // update gadget by single id
+    // update gadget by id
     app.put('/update-gadget/:id', async (req, res) => {
       try {
         const gadgetId = req.params.id;
@@ -235,6 +234,41 @@ async function run() {
           .send({ message: 'Error updating gadget', error: error.message });
       }
     });
+    // delete gadget by id
+    app.delete('/delete-gadget/:id', async (req, res) => {
+      try {
+        const gadgetId = req.params.id;
+
+        // Validate the ID
+        if (!ObjectId.isValid(gadgetId)) {
+          return res.status(400).send({ message: 'Invalid gadget ID' });
+        }
+
+        // Check if the gadget exists
+        const existingGadget = await gadgetsCollection.findOne({
+          _id: new ObjectId(gadgetId),
+        });
+
+        if (!existingGadget) {
+          return res.status(404).send({ message: 'Gadget not found' });
+        }
+
+        // Delete the gadget
+        const result = await gadgetsCollection.deleteOne({
+          _id: new ObjectId(gadgetId),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(400).send({ message: 'Failed to delete gadget' });
+        }
+
+        res.send({ message: 'Gadget deleted successfully', result });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: 'Error deleting gadget', error: error.message });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
@@ -253,5 +287,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`Example app listening on port ${port}`);
 });

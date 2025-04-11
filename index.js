@@ -26,6 +26,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const usersCollection = client.db('rentifytechDB').collection('users');
+    const postsCollection = client.db("rentifytechDB").collection("posts");
     const gadgetsCollection = client.db('rentifytechDB').collection('gadgets');
 
     // JWT Authentication API
@@ -132,6 +133,14 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+    // wasee11
+
+    app.get("/posts", async (req, res) => {
+      const posts = await postsCollection.find().toArray();
+      res.send(posts);
+    });
+
     /**
      *
        -------   gadget crud   ----------

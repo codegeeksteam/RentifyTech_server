@@ -1,9 +1,9 @@
-require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const express = require('express');
-const cors = require('cors');
+require("dotenv").config();
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 4000;
 
 app.use(cors());
@@ -25,15 +25,16 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-    const usersCollection = client.db('rentifytechDB').collection('users');
+    const usersCollection = client.db("rentifytechDB").collection("users");
     const postsCollection = client.db("rentifytechDB").collection("posts");
-    const gadgetsCollection = client.db('rentifytechDB').collection('gadgets');
+    const gadgetsCollection = client.db("rentifytechDB").collection("gadgets");
+    const cartsCollection = client.db("rentifytechDB").collection("carts");
 
     // JWT Authentication API
-    app.post('/jwt', async (req, res) => {
+    app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET, {
-        expiresIn: '365d',
+        expiresIn: "365d",
       });
       res.send({ token });
     });
@@ -41,11 +42,11 @@ async function run() {
     // middle aware
     const verifyToken = (req, res, next) => {
       if (!req.headers.authorization) {
-        return res.status(401).send('Forbidden Access');
+        return res.status(401).send("Forbidden Access");
       }
-      const token = req.headers.authorization.split(' ')[1];
+      const token = req.headers.authorization.split(" ")[1];
       jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(403).send('Invalid or Expired Token');
+        if (err) return res.status(403).send("Invalid or Expired Token");
         req.decoded = decoded;
         next();
       });
@@ -56,9 +57,9 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      const isAdmin = user?.role === 'Admin';
+      const isAdmin = user?.role === "Admin";
       if (!isAdmin) {
-        return res.status(403).send('forbidden access');
+        return res.status(403).send("forbidden access");
       }
       next();
     };
@@ -68,67 +69,67 @@ async function run() {
       const email = req.decoded.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-      const isAgent = user?.role === 'Agent';
+      const isAgent = user?.role === "Agent";
       if (!isAgent) {
-        return res.status(403).send('forbidden access');
+        return res.status(403).send("forbidden access");
       }
       next();
     };
 
     //User registration related API
-    app.get('/all-users', async (req, res) => {
+    app.get("/all-users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
-    app.get('/users/admin/:email', verifyToken, async (req, res) => {
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (email !== req.decoded.email) {
-        return res.status(403).send({ message: 'Unauthorized access' });
+        return res.status(403).send({ message: "Unauthorized access" });
       }
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       let admin = false;
       if (user) {
-        admin = user?.role === 'Admin';
+        admin = user?.role === "Admin";
       }
       res.send({ admin });
     });
 
-    app.get('/users/user/:email', verifyToken, async (req, res) => {
+    app.get("/users/user/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (email !== req.decoded.email) {
-        return res.status(403).send({ message: 'Unauthorized access' });
+        return res.status(403).send({ message: "Unauthorized access" });
       }
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       let users = false;
       if (user) {
-        users = user?.role === 'User';
+        users = user?.role === "User";
       }
       res.send({ users });
     });
 
-    app.get('/users/agent/:email', verifyToken, async (req, res) => {
+    app.get("/users/agent/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (email !== req.decoded.email) {
-        return res.status(403).send({ message: 'Unauthorized access' });
+        return res.status(403).send({ message: "Unauthorized access" });
       }
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       let agent = false;
       if (user) {
-        agent = user?.role === 'Agent';
+        agent = user?.role === "Agent";
       }
       res.send({ agent });
     });
 
-    app.post('/users', async (req, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
       if (existingUser) {
-        return res.status(409).send({ message: 'User already exists' });
+        return res.status(409).send({ message: "User already exists" });
       }
       const result = await usersCollection.insertOne(user);
       res.send(result);
@@ -139,7 +140,37 @@ async function run() {
     app.get("/posts", async (req, res) => {
       const posts = await postsCollection.find().toArray();
       res.send(posts);
-    });
+    });
+
+    // Waseque
+    // Promote Agent to Admin
+    app.patch(
+      "/users/make-admin/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { role: "Admin" } }
+        );
+        res.send(result);
+      }
+    );
+
+    // Delete User
+    app.delete(
+      "/delete-user/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const result = await usersCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      }
+    );
 
     /**
      *
@@ -147,20 +178,20 @@ async function run() {
      *
      **/
     // posting a gadget
-    app.post('/gadgets', async (req, res) => {
+    app.post("/gadgets", async (req, res) => {
       const gadget = req.body;
       const result = await gadgetsCollection.insertOne(gadget);
       res.send(result);
     });
     // getting all gadgets
-    app.get('/gadgets', async (req, res) => {
+    app.get("/gadgets", async (req, res) => {
       const result = await gadgetsCollection.find().toArray();
       res.send(result);
     });
 
     // get single gadget by id
-    const { ObjectId } = require('mongodb');
-    app.get('/gadget/:id', async (req, res) => {
+    const { ObjectId } = require("mongodb");
+    app.get("/gadget/:id", async (req, res) => {
       try {
         const gadgetId = req.params.id;
 
@@ -170,51 +201,51 @@ async function run() {
         });
 
         if (!gadget) {
-          return res.status(404).send({ message: 'Gadget not found' });
+          return res.status(404).send({ message: "Gadget not found" });
         }
 
         res.send(gadget);
       } catch (error) {
         res
           .status(500)
-          .send({ message: 'Error fetching gadget', error: error.message });
+          .send({ message: "Error fetching gadget", error: error.message });
       }
     });
 
     // get gadgets of a seller
-    app.get('/gadgets/seller/:email', async (req, res) => {
+    app.get("/gadgets/seller/:email", async (req, res) => {
       try {
         const sellerEmail = req.params.email;
 
         // Query the database for gadgets by the seller's email
         const sellerGadgets = await gadgetsCollection
-          .find({ 'seller.email': sellerEmail })
+          .find({ "seller.email": sellerEmail })
           .toArray();
 
         if (sellerGadgets.length === 0) {
           return res
             .status(404)
-            .send({ message: 'No gadgets found for this seller' });
+            .send({ message: "No gadgets found for this seller" });
         }
 
         res.send(sellerGadgets);
       } catch (error) {
         res.status(500).send({
-          message: 'Error fetching seller gadgets',
+          message: "Error fetching seller gadgets",
           error: error.message,
         });
       }
     });
 
     // update gadget by id
-    app.put('/update-gadget/:id', async (req, res) => {
+    app.put("/update-gadget/:id", async (req, res) => {
       try {
         const gadgetId = req.params.id;
         const updatedGadget = req.body;
 
         // Validate the ID
         if (!ObjectId.isValid(gadgetId)) {
-          return res.status(400).send({ message: 'Invalid gadget ID' });
+          return res.status(400).send({ message: "Invalid gadget ID" });
         }
 
         // Check if the gadget exists
@@ -223,34 +254,34 @@ async function run() {
         });
 
         if (!existingGadget) {
-          return res.status(404).send({ message: 'Gadget not found' });
+          return res.status(404).send({ message: "Gadget not found" });
         }
 
         // Update the gadget
         const result = await gadgetsCollection.updateOne(
           { _id: new ObjectId(gadgetId) },
-          { $set: updatedGadget },
+          { $set: updatedGadget }
         );
 
         if (result.modifiedCount === 0) {
-          return res.status(400).send({ message: 'No changes were made' });
+          return res.status(400).send({ message: "No changes were made" });
         }
 
-        res.send({ message: 'Gadget updated successfully', result });
+        res.send({ message: "Gadget updated successfully", result });
       } catch (error) {
         res
           .status(500)
-          .send({ message: 'Error updating gadget', error: error.message });
+          .send({ message: "Error updating gadget", error: error.message });
       }
     });
     // delete gadget by id
-    app.delete('/delete-gadget/:id', async (req, res) => {
+    app.delete("/delete-gadget/:id", async (req, res) => {
       try {
         const gadgetId = req.params.id;
 
         // Validate the ID
         if (!ObjectId.isValid(gadgetId)) {
-          return res.status(400).send({ message: 'Invalid gadget ID' });
+          return res.status(400).send({ message: "Invalid gadget ID" });
         }
 
         // Check if the gadget exists
@@ -259,7 +290,7 @@ async function run() {
         });
 
         if (!existingGadget) {
-          return res.status(404).send({ message: 'Gadget not found' });
+          return res.status(404).send({ message: "Gadget not found" });
         }
 
         // Delete the gadget
@@ -268,21 +299,34 @@ async function run() {
         });
 
         if (result.deletedCount === 0) {
-          return res.status(400).send({ message: 'Failed to delete gadget' });
+          return res.status(400).send({ message: "Failed to delete gadget" });
         }
 
-        res.send({ message: 'Gadget deleted successfully', result });
+        res.send({ message: "Gadget deleted successfully", result });
       } catch (error) {
         res
           .status(500)
-          .send({ message: 'Error deleting gadget', error: error.message });
+          .send({ message: "Error deleting gadget", error: error.message });
       }
     });
 
+    // Cards Collection
+   app.get('/carts', async(req ,res) => {
+    const result = await cartsCollection.find().toArray();
+    res.send(result);
+   });
+
+    app.post("/carts", async (req, res) => {
+      const cartItem = req.body;
+      const result = await cartsCollection.insertOne(cartItem);
+      res.send(result);
+
+    });
+
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log(
-      'Pinged your deployment. You successfully connected to MongoDB!',
+      "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
     // Ensures that the client will close when you finish/error
@@ -291,8 +335,8 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get('/', (req, res) => {
-  res.send('RentifyTech_server Site is Running!');
+app.get("/", (req, res) => {
+  res.send("RentifyTech_server Site is Running!");
 });
 
 app.listen(port, () => {

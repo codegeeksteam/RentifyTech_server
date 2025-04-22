@@ -28,7 +28,7 @@ async function run() {
     const usersCollection = client.db("rentifytechDB").collection("users");
     const postsCollection = client.db("rentifytechDB").collection("posts");
     const gadgetsCollection = client.db("rentifytechDB").collection("gadgets");
-    const cartsCollection = client.db("rentifytechDB").collection("carts");
+    const cartCollection = client.db("rentifytechDB").collection("cart");
 
     // JWT Authentication API
     app.post("/jwt", async (req, res) => {
@@ -311,14 +311,16 @@ async function run() {
     });
 
     // Cards Collection
-   app.get('/carts', async(req ,res) => {
-    const result = await cartsCollection.find().toArray();
+   app.get('/cart', async(req ,res) => {
+    const email = req.query.email;
+    const query = {userEmail: email}
+    const result = await cartCollection.find(query).toArray();
     res.send(result);
    });
 
-    app.post("/carts", async (req, res) => {
+    app.post("/cart", async (req, res) => {
       const cartItem = req.body;
-      const result = await cartsCollection.insertOne(cartItem);
+      const result = await cartCollection.insertOne(cartItem);
       res.send(result);
 
     });

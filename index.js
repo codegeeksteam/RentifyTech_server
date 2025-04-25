@@ -29,7 +29,9 @@ async function run() {
     const postsCollection = client.db("rentifytechDB").collection("posts");
     const gadgetsCollection = client.db("rentifytechDB").collection("gadgets");
     const cartCollection = client.db("rentifytechDB").collection("cart");
-    const wishListsCollection = client.db("rentifytechDB").collection("wishLists");
+    const wishListsCollection = client
+      .db("rentifytechDB")
+      .collection("wishLists");
 
     // JWT Authentication API
     app.post("/jwt", async (req, res) => {
@@ -311,38 +313,46 @@ async function run() {
     });
 
     // Cards Collection
-   app.get('/cart', async(req ,res) => {
-    const email = req.query.email;
-    const query = {userEmail: email}
-    const result = await cartCollection.find(query).toArray();
-    res.send(result);
-   });
+    app.get("/cart", async (req, res) => {
+      const email = req.query.email;
+      const query = { userEmail: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
 
     app.post("/cart", async (req, res) => {
       const cartItem = req.body;
       const result = await cartCollection.insertOne(cartItem);
       res.send(result);
-
     });
 
     app.delete("/cartDelete/:id", async (req, res) => {
       const cartItemId = req.params.id;
-      const query = { _id: new ObjectId(cartItemId) }
+      const query = { _id: new ObjectId(cartItemId) };
       const result = await cartCollection.deleteOne(query);
       res.send(result);
-    })
+    });
 
     // Wish List Collection
-    app.get('/wish', async(req ,res) => {
+    app.get("/wish", async (req, res) => {
       const email = req.query.email;
-      const query = {userEmail: email}
+      const query = {
+        email: email,
+      };
       const result = await wishListsCollection.find(query).toArray();
       res.send(result);
-     });
+    });
 
-     app.post("/wishLists", async (req, res) => {
+    app.post("/wishlist", async (req, res) => {
       const wishListsItem = req.body;
       const result = await wishListsCollection.insertOne(wishListsItem);
+      res.send(result);
+    });
+
+    app.delete("/wishListDelete/:id", async (req, res) => {
+      const wishItemId = req.params.id;
+      const query = { _id: new ObjectId(wishItemId) };
+      const result = await wishListsCollection.deleteOne(query);
       res.send(result);
     });
 

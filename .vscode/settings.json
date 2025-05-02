@@ -20,9 +20,6 @@
         "terminal.ansiWhite": "#A89984",
         "editor.fontSize": 10,
         "terminal.letterSpacing": 0,
-        "terminal.ansiYellow": "#FAC03B",
-        "activityBar.background": "#5E0A1D",
-        "titleBar.activeBackground": "#830E28",
-        "titleBar.activeForeground": "#FFFBFC"
+        "terminal.ansiYellow": "#FAC03B"
     }
 }

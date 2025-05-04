@@ -413,7 +413,6 @@ async function run() {
     // app.post("/create-payment-intent", async (req, res) => {
     //   try {
     //     const { amount } = req.body;
-
     //     // amount should be in cents, e.g., $10 = 1000
     //     const paymentIntent = await stripe.paymentIntents.create({
     //       amount,

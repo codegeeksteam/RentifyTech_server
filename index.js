@@ -13,6 +13,7 @@ app.use(express.json());
 // MongoDB connection
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hw01f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -85,6 +86,61 @@ async function run() {
     app.get("/all-users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
+    });
+
+    // get user by email
+    app.get('/user/:email', async (req, res) => {
+      try {
+        const userEmail = req.params.email;
+
+        // Query the database for user by user email
+        const user = await usersCollection.find({ email: userEmail }).toArray();
+
+        res.send(user);
+      } catch (error) {
+        res.status(500).send({
+          message: 'Error fetching user',
+          error: error.message,
+        });
+      }
+    });
+
+    // update user by id
+    app.put('/update-user/:id', async (req, res) => {
+      try {
+        const userId = req.params.id;
+        const updatedUser = req.body;
+
+        // Validate the ID
+        if (!ObjectId.isValid(userId)) {
+          return res.status(400).send({ message: 'Invalid user ID' });
+        }
+
+        // Check if the user exists
+        const existingUser = await usersCollection.findOne({
+          _id: new ObjectId(userId),
+        });
+
+        if (!existingUser) {
+          return res.status(404).send({ message: 'User not found' });
+        }
+
+        // Update the user
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: updatedUser },
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(400).send({ message: 'No changes were made' });
+        }
+
+        res.send({ message: 'User updated successfully', result });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: 'Error updating user', error: error.message });
+      }
     });
 
     app.get("/users/admin/:email", verifyToken, async (req, res) => {
@@ -357,8 +413,7 @@ async function run() {
     // app.post("/create-payment-intent", async (req, res) => {
     //   try {
     //     const { amount } = req.body;
-
-    //     // amount should be in *cents*, e.g., $10 = 1000
+    //     // amount should be in cents, e.g., $10 = 1000
     //     const paymentIntent = await stripe.paymentIntents.create({
     //       amount,
     //       currency: "usd",
@@ -376,7 +431,7 @@ async function run() {
     //   try {
     //     const { amount } = req.body;
 
-    //     // amount should be in *cents*, e.g., $10 = 1000
+    //     // amount should be in cents, e.g., $10 = 1000
     //     const paymentIntent = await stripe.paymentIntents.create({
     //       amount,
     //       currency: "usd",
@@ -433,7 +488,7 @@ async function run() {
 
     app.post("/create-payment-intent", async (req, res) => {
       try {
-        const { amount } = req.body;
+        const { amount, gadgetsName, userName, email, localCart, orderId } = req.body;
 
         if (!amount || isNaN(amount)) {
           return res.status(400).send({ error: "Invalid or missing amount" });
@@ -455,7 +510,21 @@ async function run() {
         const result = await paymentCollection.insertOne({
           amount: amountInCents,
           clientSecret: paymentIntent.client_secret,
-          createdAt: new Date(),
+          creatAMonth: new Date().toLocaleString("default", {
+            month: "long",
+          }),
+          transactionId: paymentIntent.id,
+          receipt: true,
+          status: "paid successfully",
+          paymentMethod: paymentIntent.payment_method,
+          paymentMethodTypes: paymentIntent.payment_method_types,
+          paymentDate: new Date().toLocaleDateString(),
+          paymentTime: new Date().toLocaleTimeString(),
+          gadgetsName: gadgetsName,
+          orderId: orderId,
+          userName,
+          email,
+          localCart,
         });
 
         res.send({ clientSecret: paymentIntent.client_secret });
@@ -464,6 +533,14 @@ async function run() {
         res.status(500).send({ error: error.message });
       }
     });
+
+    app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    });
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
